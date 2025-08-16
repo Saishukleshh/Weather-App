@@ -1,0 +1,105 @@
+/* General Reset */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Poppins', sans-serif;
+}
+
+body {
+    height: 100vh;
+    background: linear-gradient(135deg, #74ebd5, #9face6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    animation: backgroundMove 10s infinite alternate ease-in-out;
+}
+
+/* Animated background */
+@keyframes backgroundMove {
+    from { background-position: left; }
+    to { background-position: right; }
+}
+
+.container {
+    text-align: center;
+    width: 90%;
+    max-width: 450px;
+}
+
+.title {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    animation: fadeInDown 1s ease-in-out;
+}
+
+.search-box {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+    gap: 10px;
+}
+
+.search-box input {
+    padding: 12px;
+    width: 70%;
+    border: none;
+    border-radius: 30px;
+    outline: none;
+    font-size: 1rem;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+}
+
+.search-box button {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 70px;
+    background: linear-gradient(135deg, #4facfe, #00f2fe);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.3s ease;
+}
+
+.search-box button:hover {
+    transform: scale(1.1);
+    background: linear-gradient(135deg, #43e97b, #38f9d7);
+}
+
+/* Weather Card */
+.weather-card {
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(15px);
+    padding: 25px;
+    border-radius: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    animation: fadeIn 1s ease-in-out;
+}
+
+.weather-card h2 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+}
+
+.weather-card p {
+    font-size: 1.2rem;
+    margin: 6px 0;
+}
+
+.temp {
+    font-size: 3rem;
+    font-weight: bold;
+    margin: 10px 0;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translateY(-20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
