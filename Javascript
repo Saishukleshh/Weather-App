@@ -1,4 +1,4 @@
-// Replace with your own API key
+
 const apiKey = "79544ad5a96d5678372106a037251c9a";
 
 function getWeather() {
