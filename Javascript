@@ -1,32 +1,187 @@
 
 const apiKey = "79544ad5a96d5678372106a037251c9a";
 
-function getWeather() {
-    const city = document.getElementById("city-input").value;
-    const weatherResult = document.getElementById("weather-result");
+// Small, self-contained weather UI enhancements:
+// - Enter to search
+// - Unit toggle (°C / °F) persisted to localStorage
+// - Loading indicator
+// - Animated OpenWeather icon
+// - Background gradient changes based on main weather
+// - Last searched city persisted
+
+let units = localStorage.getItem('weatherUnits') || 'metric'; // 'metric' or 'imperial'
+
+document.addEventListener('DOMContentLoaded', () => {
+    const searchBox = document.querySelector('.search-box');
+    const input = document.getElementById('city-input');
+
+    // Create unit toggle button and insert into search box
+    const unitToggle = document.createElement('button');
+    unitToggle.id = 'unit-toggle';
+    unitToggle.type = 'button';
+    unitToggle.style.padding = '0.8rem 1rem';
+    unitToggle.style.borderRadius = '0.75rem';
+    unitToggle.style.border = 'none';
+    unitToggle.style.cursor = 'pointer';
+    unitToggle.style.background = 'linear-gradient(135deg, #60A5FA, #8B5CF6)';
+    unitToggle.style.color = 'white';
+    unitToggle.style.fontWeight = '600';
+    unitToggle.style.marginLeft = '0.5rem';
+    unitToggle.textContent = units === 'metric' ? '°C' : '°F';
+
+    unitToggle.addEventListener('click', () => {
+        units = units === 'metric' ? 'imperial' : 'metric';
+        unitToggle.textContent = units === 'metric' ? '°C' : '°F';
+        localStorage.setItem('weatherUnits', units);
+        // If we have a last city, re-fetch in the new units
+        const last = localStorage.getItem('lastCity');
+        if (last) getWeather(last);
+    });
+
+    // Append unit toggle next to button (or at end of search box)
+    searchBox.appendChild(unitToggle);
+
+    // Enter key triggers search
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            getWeather();
+        }
+    });
+
+    // If we have a previously searched city, load it
+    const lastCity = localStorage.getItem('lastCity');
+    if (lastCity) {
+        input.value = lastCity;
+        getWeather(lastCity);
+    }
+});
+
+function showLoading(target) {
+    target.innerHTML = '';
+    const loader = document.createElement('div');
+    loader.id = 'loader';
+    loader.style.padding = '1.25rem';
+    loader.style.fontSize = '1.05rem';
+    loader.style.color = '#94A3B8';
+    loader.textContent = 'Loading';
+    // simple animated dots
+    let dots = 0;
+    loader._interval = setInterval(() => {
+        dots = (dots + 1) % 4;
+        loader.textContent = 'Loading' + '.'.repeat(dots);
+    }, 400);
+    target.appendChild(loader);
+}
+
+function hideLoading(target) {
+    const loader = target.querySelector('#loader');
+    if (loader) {
+        clearInterval(loader._interval);
+        loader.remove();
+    }
+}
+
+function changeBackgroundByWeather(main) {
+    // Gentle gradients for different weather types
+    const body = document.body;
+    switch ((main || '').toLowerCase()) {
+        case 'clear':
+            body.style.background = 'linear-gradient(125deg, #0369A1, #06B6D4)';
+            break;
+        case 'clouds':
+            body.style.background = 'linear-gradient(125deg, #334155, #475569)';
+            break;
+        case 'rain':
+        case 'drizzle':
+            body.style.background = 'linear-gradient(125deg, #0f172a, #334155)';
+            break;
+        case 'thunderstorm':
+            body.style.background = 'linear-gradient(125deg, #0f172a, #0b1220)';
+            break;
+        case 'snow':
+            body.style.background = 'linear-gradient(125deg, #93C5FD, #E6EEF8)';
+            break;
+        case 'mist':
+        case 'haze':
+        case 'fog':
+            body.style.background = 'linear-gradient(125deg, #374151, #6B7280)';
+            break;
+        default:
+            body.style.background = 'linear-gradient(125deg, #0F172A, #1E293B)';
+            break;
+    }
+}
+
+function formatTime(unixSeconds, timezoneOffsetSeconds) {
+    // Returns localized time string (HH:MM)
+    // timezoneOffsetSeconds is seconds difference from UTC (as provided by OpenWeather)
+    const date = new Date((unixSeconds + (timezoneOffsetSeconds || 0)) * 1000);
+    return date.toUTCString().match(/\d{2}:\d{2}/)[0];
+}
+
+function getWeather(passedCity) {
+    const cityInput = document.getElementById('city-input');
+    const city = passedCity || cityInput.value.trim();
+    const weatherResult = document.getElementById('weather-result');
 
     if (!city) {
-        weatherResult.innerHTML = "<p>Please enter a city name.</p>";
+        weatherResult.innerHTML = '<p>Please enter a city name.</p>';
         return;
     }
 
-    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`)
+    // Save last city
+    localStorage.setItem('lastCity', city);
+
+    showLoading(weatherResult);
+
+    // Use current units (metric/imperial)
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${apiKey}&units=${units}`)
         .then(response => {
             if (!response.ok) {
-                throw new Error("City not found");
+                if (response.status === 404) throw new Error('City not found');
+                throw new Error('Failed to fetch weather');
             }
             return response.json();
         })
         .then(data => {
-            weatherResult.innerHTML = `
+            hideLoading(weatherResult);
+
+            const unitSymbol = units === 'metric' ? '°C' : '°F';
+            const windUnit = units === 'metric' ? 'm/s' : 'mph';
+            const temp = Math.round(data.main.temp);
+            const feels = Math.round(data.main.feels_like);
+            const desc = data.weather[0].description;
+            const icon = data.weather[0].icon;
+
+            changeBackgroundByWeather(data.weather[0].main);
+
+            // Build a nice card using classes from your CSS
+            const card = document.createElement('div');
+            card.className = 'weather-card';
+
+            card.innerHTML = `
                 <h2>${data.name}, ${data.sys.country}</h2>
-                <p>🌡 Temperature: ${data.main.temp}°C</p>
-                <p>🌤 Weather: ${data.weather[0].description}</p>
-                <p>💨 Wind Speed: ${data.wind.speed} m/s</p>
-                <p>💧 Humidity: ${data.main.humidity}%</p>
+                <div style="display:flex;align-items:center;justify-content:center;gap:1.25rem;flex-wrap:wrap;">
+                    <img src="https://openweathermap.org/img/wn/${icon}@4x.png" alt="${desc}" style="width:96px;height:96px;animation:fadeScale 0.9s both;" />
+                    <div>
+                        <div class="temp">${temp}${unitSymbol}</div>
+                        <div style="color:#94A3B8;font-weight:600">Feels like ${feels}${unitSymbol}</div>
+                    </div>
+                </div>
+                <p style="margin-top:0.75rem;color:#94A3B8;text-transform:capitalize">${desc}</p>
+                <p>💨 Wind: ${data.wind.speed} ${windUnit} • 💧 Humidity: ${data.main.humidity}%</p>
+                <p>� Pressure: ${data.main.pressure} hPa • Visibility: ${Math.round((data.visibility||0)/1000)} km</p>
+                <p>🌅 Sunrise: ${formatTime(data.sys.sunrise, data.timezone)} • 🌇 Sunset: ${formatTime(data.sys.sunset, data.timezone)}</p>
             `;
+
+            weatherResult.innerHTML = '';
+            weatherResult.appendChild(card);
         })
         .catch(error => {
+            hideLoading(weatherResult);
             weatherResult.innerHTML = `<p>${error.message}</p>`;
         });
 }
+
+// Keep function available for inline onclick in index.html
+window.getWeather = getWeather;
